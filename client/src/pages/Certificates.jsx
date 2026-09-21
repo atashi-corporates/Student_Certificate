@@ -12,6 +12,7 @@ function Certificates() {
 
   const [formData, setFormData] = useState({
     certificateId: "",
+    certificateType: "Internship",
     course: "",
     batch: "",
     startDate: "",
@@ -46,15 +47,12 @@ function Certificates() {
 
   // =========================================
   // FORMAT DATE
-  // Example:
-  // 23rd June 2026
   // =========================================
 
   const formatDate = (date) => {
     if (!date) return "";
 
     const d = new Date(date);
-
     const day = d.getDate();
 
     let suffix = "th";
@@ -79,7 +77,7 @@ function Certificates() {
   };
 
   // =========================================
-  // COURSE DURATION
+  // DURATION
   // =========================================
 
   const getCourseDuration = () => {
@@ -108,6 +106,7 @@ function Certificates() {
 
       setFormData({
         certificateId: "",
+        certificateType: "Internship",
         course: "",
         batch: "",
         startDate: "",
@@ -129,6 +128,7 @@ function Certificates() {
 
     setFormData({
       certificateId: certificateId,
+      certificateType: "Internship",
       course: student.course || "",
       batch: student.batch || "",
       startDate: student.startDate ? student.startDate.substring(0, 10) : "",
@@ -142,6 +142,7 @@ function Certificates() {
     try {
       const qrData = `Student Name: ${student.name}
 Institute Name: Corporates Guide
+Certificate Type: Internship
 Course: ${student.course || ""}
 Certificate ID: ${certificateId}`;
 
@@ -153,8 +154,44 @@ Certificate ID: ${certificateId}`;
       setQrCode(qrImage);
     } catch (error) {
       console.error("QR Code generation failed:", error);
-
       setQrCode("");
+    }
+  };
+
+  // =========================================
+  // CERTIFICATE TYPE CHANGE
+  // =========================================
+
+  const handleCertificateTypeChange = async (e) => {
+    const certificateType = e.target.value;
+
+    setFormData((previousData) => ({
+      ...previousData,
+      certificateType: certificateType,
+    }));
+
+    const student = getSelectedStudent();
+
+    if (!student || !formData.certificateId) {
+      return;
+    }
+
+    // Update QR code according to certificate type
+    try {
+      const qrData = `Student Name: ${student.name}
+Institute Name: Corporates Guide
+Certificate Type: ${certificateType}
+Course: ${formData.course || ""}
+Certificate ID: ${formData.certificateId}`;
+
+      const qrImage = await QRCode.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+      });
+
+      setQrCode(qrImage);
+    } catch (error) {
+      console.error("QR Code generation failed:", error);
     }
   };
 
@@ -165,10 +202,7 @@ Certificate ID: ${certificateId}`;
   const handleGenerateCertificate = async (e) => {
     e.preventDefault();
 
-    // =========================================
     // CHECK STUDENT
-    // =========================================
-
     if (!selectedStudent) {
       alert("Please select a student");
       return;
@@ -181,33 +215,30 @@ Certificate ID: ${certificateId}`;
       return;
     }
 
-    // =========================================
     // CHECK REQUIRED FIELDS
-    // =========================================
-
     if (!formData.certificateId) {
       alert("Certificate ID is missing.");
       return;
     }
 
     if (!formData.course) {
-      alert("Please enter course name.");
+      alert("Please enter course or workshop topic.");
       return;
     }
 
     if (!formData.startDate || !formData.endDate) {
-      alert("Please enter course starting date and ending date.");
+      alert("Please enter starting date and ending date.");
       return;
     }
 
     try {
       // =========================================
-      // STEP 1
-      // SAVE CERTIFICATE DATA TO DATABASE
+      // STEP 1: SAVE CERTIFICATE TO DATABASE
       // =========================================
 
       await axios.post("http://localhost:5000/api/certificates", {
         certificateId: formData.certificateId,
+        certificateType: formData.certificateType,
         student: student._id,
         studentName: student.name,
         course: formData.course,
@@ -217,8 +248,7 @@ Certificate ID: ${certificateId}`;
       });
 
       // =========================================
-      // STEP 2
-      // GET CERTIFICATE ELEMENT
+      // STEP 2: GET CERTIFICATE ELEMENT
       // =========================================
 
       const certificateElement = document.getElementById("certificate");
@@ -229,8 +259,7 @@ Certificate ID: ${certificateId}`;
       }
 
       // =========================================
-      // STEP 3
-      // CONVERT HTML CERTIFICATE TO CANVAS
+      // STEP 3: CONVERT HTML TO CANVAS
       // =========================================
 
       const canvas = await html2canvas(certificateElement, {
@@ -241,15 +270,13 @@ Certificate ID: ${certificateId}`;
       });
 
       // =========================================
-      // STEP 4
-      // CONVERT CANVAS TO IMAGE
+      // STEP 4: CONVERT CANVAS TO IMAGE
       // =========================================
 
       const imageData = canvas.toDataURL("image/png");
 
       // =========================================
-      // STEP 5
-      // CREATE A4 LANDSCAPE PDF
+      // STEP 5: CREATE A4 LANDSCAPE PDF
       // =========================================
 
       const pdf = new jsPDF({
@@ -259,31 +286,23 @@ Certificate ID: ${certificateId}`;
       });
 
       // =========================================
-      // STEP 6
-      // GET PDF PAGE SIZE
+      // STEP 6: GET PDF PAGE SIZE
       // =========================================
 
       const pageWidth = pdf.internal.pageSize.getWidth();
-
       const pageHeight = pdf.internal.pageSize.getHeight();
 
       // =========================================
-      // STEP 7
-      // ADD CERTIFICATE IMAGE TO PDF
+      // STEP 7: ADD CERTIFICATE IMAGE TO PDF
       // =========================================
 
       pdf.addImage(imageData, "PNG", 0, 0, pageWidth, pageHeight);
 
       // =========================================
-      // STEP 8
-      // DOWNLOAD PDF
+      // STEP 8: DOWNLOAD PDF
       // =========================================
 
-      pdf.save(`${student.name}.pdf`);
-
-      // =========================================
-      // SUCCESS MESSAGE
-      // =========================================
+      pdf.save(`${student.name}-${formData.certificateType}-Certificate.pdf`);
 
       alert("Certificate created and downloaded as PDF!");
 
@@ -292,11 +311,11 @@ Certificate ID: ${certificateId}`;
       // =========================================
 
       setSelectedStudent("");
-
       setQrCode("");
 
       setFormData({
         certificateId: "",
+        certificateType: "Internship",
         course: "",
         batch: "",
         startDate: "",
@@ -304,7 +323,6 @@ Certificate ID: ${certificateId}`;
       });
     } catch (error) {
       console.log("Full Error:", error);
-
       console.log("Server Response:", error.response?.data);
 
       alert(
@@ -333,7 +351,6 @@ Certificate ID: ${certificateId}`;
 
       <div className="certificates-header">
         <h1>Certificate Management</h1>
-
         <p>Create and manage student certificates</p>
       </div>
 
@@ -365,6 +382,22 @@ Certificate ID: ${certificateId}`;
             </select>
           </div>
 
+          {/* CERTIFICATE TYPE */}
+
+          <div className="form-group">
+            <label>Certificate Type</label>
+
+            <select
+              value={formData.certificateType}
+              onChange={handleCertificateTypeChange}
+              required
+            >
+              <option value="Internship">Internship Certificate</option>
+
+              <option value="Workshop">Workshop Certificate</option>
+            </select>
+          </div>
+
           {/* CERTIFICATE ID */}
 
           <div className="form-group">
@@ -378,10 +411,14 @@ Certificate ID: ${certificateId}`;
             />
           </div>
 
-          {/* COURSE */}
+          {/* COURSE / WORKSHOP TOPIC */}
 
           <div className="form-group">
-            <label>Course</label>
+            <label>
+              {formData.certificateType === "Internship"
+                ? "Course"
+                : "Workshop Topic"}
+            </label>
 
             <input
               type="text"
@@ -392,7 +429,11 @@ Certificate ID: ${certificateId}`;
                   course: e.target.value,
                 })
               }
-              placeholder="Course Name"
+              placeholder={
+                formData.certificateType === "Internship"
+                  ? "Course Name"
+                  : "Workshop Topic"
+              }
               required
             />
           </div>
@@ -400,7 +441,11 @@ Certificate ID: ${certificateId}`;
           {/* START DATE */}
 
           <div className="form-group">
-            <label>Course Starting Date</label>
+            <label>
+              {formData.certificateType === "Internship"
+                ? "Course Starting Date"
+                : "Workshop Starting Date"}
+            </label>
 
             <input
               type="date"
@@ -420,7 +465,11 @@ Certificate ID: ${certificateId}`;
           {/* END DATE */}
 
           <div className="form-group">
-            <label>Course Ending Date</label>
+            <label>
+              {formData.certificateType === "Internship"
+                ? "Course Ending Date"
+                : "Workshop Ending Date"}
+            </label>
 
             <input
               type="date"
@@ -438,7 +487,11 @@ Certificate ID: ${certificateId}`;
           {/* DURATION */}
 
           <div className="form-group">
-            <label>Course Duration</label>
+            <label>
+              {formData.certificateType === "Internship"
+                ? "Course Duration"
+                : "Workshop Duration"}
+            </label>
 
             <input type="text" value={getCourseDuration()} readOnly />
           </div>
@@ -461,22 +514,22 @@ Certificate ID: ${certificateId}`;
         </form>
       </div>
 
-      {/* ==================================================
+      {/* =====================================
           CERTIFICATE TEMPLATE
-      ================================================== */}
+      ===================================== */}
 
       <div id="certificate" className="certificate-template">
-        {/* ================================================
-            BLUE HEADER
-        ================================================= */}
+        {/* BLUE HEADER */}
 
         <div className="certificate-header-area">
-          {/* CERTIFICATE TITLE */}
-
           <div className="certificate-heading">
             <h1>CERTIFICATE</h1>
 
-            <span>OF COMPLETION</span>
+            <span>
+              {formData.certificateType === "Internship"
+                ? "OF COMPLETION"
+                : "OF PARTICIPATION"}
+            </span>
           </div>
 
           {/* CORPORATES GUIDE LOGO */}
@@ -496,25 +549,15 @@ Certificate ID: ${certificateId}`;
           />
         </div>
 
-        {/* ================================================
-            GOLD CURVE
-        ================================================= */}
+        {/* GOLD CURVE */}
 
         <div className="gold-curve"></div>
 
-        {/* ================================================
-            WATERMARK
-        ================================================= */}
+        {/* WATERMARK TEXT */}
 
-        <div className="certificate-watermark">
-          CORPORATES
-          <br />
-          GUIDE
-        </div>
+        <div className="certificate-watermark">CORPORATES GUIDE</div>
 
-        {/* ================================================
-            MAIN CERTIFICATE CONTENT
-        ================================================= */}
+        {/* MAIN CERTIFICATE CONTENT */}
 
         <div className="certificate-content">
           {/* NAME */}
@@ -524,38 +567,65 @@ Certificate ID: ${certificateId}`;
             <strong>{selectedStudentData?.name || "STUDENT NAME"}</strong>
           </p>
 
-          {/* DESCRIPTION */}
+          {/* INTERNSHIP CERTIFICATE TEXT */}
 
-          <p className="main-description">
-            Successfully completed their internship with Corporates Guide
-          </p>
+          {formData.certificateType === "Internship" ? (
+            <>
+              <p className="main-description">
+                Successfully completed their internship with{" "}
+                <strong> Corporates Guide</strong>
+              </p>
 
-          {/* BATCH + DURATION */}
+              <p className="batch-line">
+                {" with the duration of "}
 
-          <p className="batch-line">
-            {" with the duration of "}
+                <strong>
+                  {formData.startDate && formData.endDate
+                    ? getCourseDuration()
+                    : " "}
+                </strong>
+              </p>
 
-            <strong>
-              {formData.startDate && formData.endDate
-                ? getCourseDuration()
-                : "Course Duration"}
-            </strong>
-          </p>
+              <p className="course-line">
+                During the internship{" "}
+                <strong>{formData.course || "COURSE NAME"}</strong>
+              </p>
 
-          {/* COURSE */}
+              <p className="contribution-text">
+                Contributed to: Active Participation during the training session
+                and gaining basic understanding of the subject.
+              </p>
+            </>
+          ) : (
+            /* WORKSHOP CERTIFICATE TEXT */
 
-          <p className="course-line">
-            During the internship <span></span>
-            <strong>{formData.course || "COURSE NAME"}</strong>
-            <span></span>
-          </p>
+            <>
+              <p className="main-description">
+                Successfully participated in the workshop organized by
+                <strong> Corporates Guide</strong>
+              </p>
 
-          {/* CONTRIBUTION */}
+              <p className="batch-line">
+                {" Workshop Duration: "}
 
-          <p className="contribution-text">
-            Contributed to: Active Participation during the training session and
-            gaining basic understanding of the subject
-          </p>
+                <strong>
+                  {formData.startDate && formData.endDate
+                    ? getCourseDuration()
+                    : " "}
+                </strong>
+              </p>
+
+              <p className="course-line">
+                On the topic of{" "}
+                <strong>{formData.course || "WORKSHOP TOPIC"}</strong>
+              </p>
+
+              <p className="contribution-text">
+                Actively participated in the workshop and demonstrated
+                enthusiasm for learning new concepts and skills.
+              </p>
+            </>
+          )}
 
           {/* APPRECIATION */}
 
@@ -565,9 +635,7 @@ Certificate ID: ${certificateId}`;
           </p>
         </div>
 
-        {/* ================================================
-            QR CODE
-        ================================================= */}
+        {/* QR CODE */}
 
         {qrCode && (
           <img
@@ -577,9 +645,7 @@ Certificate ID: ${certificateId}`;
           />
         )}
 
-        {/* ================================================
-            SIGNATURE + ISO + MSME IMAGE
-        ================================================= */}
+        {/* SIGNATURE + STAMP IMAGE */}
 
         <img
           src="/signature-stamp.png"
