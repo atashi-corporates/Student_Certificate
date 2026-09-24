@@ -17,6 +17,7 @@ function Certificates() {
     batch: "",
     startDate: "",
     endDate: "",
+    venue: "",
   });
 
   // =========================================
@@ -111,6 +112,7 @@ function Certificates() {
         batch: "",
         startDate: "",
         endDate: "",
+        venue: "",
       });
 
       return;
@@ -133,6 +135,7 @@ function Certificates() {
       batch: student.batch || "",
       startDate: student.startDate ? student.startDate.substring(0, 10) : "",
       endDate: student.endDate ? student.endDate.substring(0, 10) : "",
+      venue: "",
     });
 
     // =========================================
@@ -176,7 +179,10 @@ Certificate ID: ${certificateId}`;
       return;
     }
 
-    // Update QR code according to certificate type
+    // =========================================
+    // UPDATE QR CODE
+    // =========================================
+
     try {
       const qrData = `Student Name: ${student.name}
 Institute Name: Corporates Guide
@@ -202,7 +208,10 @@ Certificate ID: ${formData.certificateId}`;
   const handleGenerateCertificate = async (e) => {
     e.preventDefault();
 
+    // =========================================
     // CHECK STUDENT
+    // =========================================
+
     if (!selectedStudent) {
       alert("Please select a student");
       return;
@@ -215,7 +224,10 @@ Certificate ID: ${formData.certificateId}`;
       return;
     }
 
+    // =========================================
     // CHECK REQUIRED FIELDS
+    // =========================================
+
     if (!formData.certificateId) {
       alert("Certificate ID is missing.");
       return;
@@ -228,6 +240,11 @@ Certificate ID: ${formData.certificateId}`;
 
     if (!formData.startDate || !formData.endDate) {
       alert("Please enter starting date and ending date.");
+      return;
+    }
+
+    if (formData.certificateType === "Workshop" && !formData.venue.trim()) {
+      alert("Please enter workshop venue.");
       return;
     }
 
@@ -245,6 +262,7 @@ Certificate ID: ${formData.certificateId}`;
         batch: formData.batch,
         startDate: formData.startDate,
         endDate: formData.endDate,
+        venue: formData.certificateType === "Workshop" ? formData.venue : "",
       });
 
       // =========================================
@@ -320,6 +338,7 @@ Certificate ID: ${formData.certificateId}`;
         batch: "",
         startDate: "",
         endDate: "",
+        venue: "",
       });
     } catch (error) {
       console.log("Full Error:", error);
@@ -438,6 +457,27 @@ Certificate ID: ${formData.certificateId}`;
             />
           </div>
 
+          {/* WORKSHOP VENUE - ONLY FOR WORKSHOP */}
+
+          {formData.certificateType === "Workshop" && (
+            <div className="form-group">
+              <label>Workshop Venue</label>
+
+              <input
+                type="text"
+                value={formData.venue}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    venue: e.target.value,
+                  })
+                }
+                placeholder="Workshop Venue"
+                required
+              />
+            </div>
+          )}
+
           {/* START DATE */}
 
           <div className="form-group">
@@ -518,7 +558,14 @@ Certificate ID: ${formData.certificateId}`;
           CERTIFICATE TEMPLATE
       ===================================== */}
 
-      <div id="certificate" className="certificate-template">
+      <div
+        id="certificate"
+        className={`certificate-template ${
+          formData.certificateType === "Workshop"
+            ? "workshop-certificate"
+            : "internship-certificate"
+        }`}
+      >
         {/* BLUE HEADER */}
 
         <div className="certificate-header-area">
@@ -543,7 +590,11 @@ Certificate ID: ${formData.certificateId}`;
           {/* BADGE */}
 
           <img
-            src="/image.png"
+            src={
+              formData.certificateType === "Workshop"
+                ? "/image2.png"
+                : "/image.png"
+            }
             alt="Certificate Badge"
             className="certificate-badge"
           />
@@ -567,7 +618,9 @@ Certificate ID: ${formData.certificateId}`;
             <strong>{selectedStudentData?.name || "STUDENT NAME"}</strong>
           </p>
 
-          {/* INTERNSHIP CERTIFICATE TEXT */}
+          {/* =====================================
+              INTERNSHIP CERTIFICATE
+          ===================================== */}
 
           {formData.certificateType === "Internship" ? (
             <>
@@ -597,7 +650,9 @@ Certificate ID: ${formData.certificateId}`;
               </p>
             </>
           ) : (
-            /* WORKSHOP CERTIFICATE TEXT */
+            /* =====================================
+                WORKSHOP CERTIFICATE
+            ===================================== */
 
             <>
               <p className="main-description">
@@ -606,7 +661,7 @@ Certificate ID: ${formData.certificateId}`;
               </p>
 
               <p className="batch-line">
-                {" Workshop Duration: "}
+                {" Workshop Held: "}
 
                 <strong>
                   {formData.startDate && formData.endDate
@@ -619,6 +674,18 @@ Certificate ID: ${formData.certificateId}`;
                 On the topic of{" "}
                 <strong>{formData.course || "WORKSHOP TOPIC"}</strong>
               </p>
+
+              {/* VENUE - ONLY WORKSHOP */}
+
+              <div className="workshop-venue">
+                <h3>
+                  <strong className="venue-label">Venue:</strong>
+
+                  <strong className="venue-location">
+                    {formData.venue || " "}
+                  </strong>
+                </h3>
+              </div>
 
               <p className="contribution-text">
                 Actively participated in the workshop and demonstrated
